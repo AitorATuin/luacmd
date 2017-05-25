@@ -1,6 +1,8 @@
 local cmd = require('command').command
 local sys_stat = require('posix.sys.stat')
 local sprintf = string.format
+package.path = package.path .. ';' .. '../test/?.lua'
+require 'assertions'
 
 local function mock_path(path, mocked_field, mocked_modules)
   local module_path, field = string.match(path, '(.+)%.(%w+)$')
@@ -157,8 +159,8 @@ describe('insulae.command specs', function()
       mock_path('posix.sys.stat.lstat', mock_lstat('exec'), mocked_modules)
       local piped1 = cmd_params_1 | cmd_params_2
       local piped2 = cmd_params_2 | cmd_params_1
-      assert.are.equals(piped1:parameters(), {'cmd1_args', 'file', 'cmd2_args'})
-      assert.are.equals(piped2:parameters(), {'cmd1_args', 'file', 'cmd2_args'})
+      assert.are.tequal(piped1:parameters(), {'cmd1_args', 'file', 'cmd2_args'})
+      assert.are.tequal(piped2:parameters(), {'cmd1_args', 'file', 'cmd2_args'})
   end)
 
   it('when piping commands each list of params per command should be stacked', function ()
