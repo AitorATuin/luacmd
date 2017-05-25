@@ -1,7 +1,7 @@
 ------------
--- insulae.command
+-- command.init
 -- module to run shell commands in a nice way
--- module: insulae.command
+-- module: command
 -- author: AitorATuin
 -- license: MIT
 
