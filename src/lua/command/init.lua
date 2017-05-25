@@ -11,18 +11,17 @@ local sys_wait = require 'posix.sys.wait'
 local sys_stat = require 'posix.sys.stat'
 local result = require 'command.result'
 local sprintf = string.format
-local inspect = require 'inspect'
 
 local function copy_table(orig_t)
   local new_t = {}
   for i, v in pairs(orig_t) do
     if type(v) == 'table' then
-      local t_cp, mt_cp = copy_table(v), nil
+      local t_cp = copy_table(v)
       local mt = getmetatable(v)
       if mt then
-        new_t[i] = setmetatable(copy_table(v), copy_table(mt))
+        new_t[i] = setmetatable(t_cp, copy_table(mt))
       else
-        new_t[i] = copy_table(v)
+        new_t[i] = t_cp
       end
     else
       new_t[i] = v
@@ -39,7 +38,6 @@ local function find_binary_path(binary)
       bit32.band(st_mode, sys_stat.S_IFDIR) ~= sys_stat.S_IFDIR
   end
   local paths = os.getenv('PATH')
-  local binary_path = nil
   for path in paths:gmatch('[^:]+') do
     local candidate_path = path .. '/' .. binary
     local lstat = sys_stat.lstat(candidate_path)
@@ -64,7 +62,7 @@ local function prepare_params(argt)
     end
   end
   return setmetatable(argt, {
-    __index = function(t, v)
+    __index = function(_, v)
       return p[v]
     end,
     __call = function(_)
@@ -78,7 +76,7 @@ end
 -- treturn: ?table table with the path for command and the arguments for command
 local function prepare_command(command)
   local cmdt = {}
-  local err = nil
+  local err
   if type(command) ~= 'function' and type(command) ~= 'string' then
     return nil, sprintf('Commands can not be created from a %s', type(command))
   end
@@ -99,12 +97,12 @@ end
 -- treturn: string string containing the data in fd
 local function read_data(fd)
   local buffer = 2048
-  local function rec_read_data(fd, data, count)
+  local function rec_read_data(_fd, data, count)
     if count < buffer then
       return data
     else
-      local _data = unistd.read(fd, buffer)
-      return rec_read_data(fd, data .. _data, #_data)
+      local _data = unistd.read(_fd, buffer)
+      return rec_read_data(_fd, data .. _data, #_data)
     end
   end
   return rec_read_data(fd, "", buffer)
@@ -127,11 +125,12 @@ end
 -- treturn: ?int|nil child process's pid or nil
 -- treturn: ?string error string in case of error
 local function fork_command(cmd, stdin, stdout, stderr)
+  local pid
   local argt, errmsg = prepare_command(cmd)
   if not argt then
     return nil, errmsg
   end
-  local pid, errmsg = unistd.fork() 
+  pid, errmsg = unistd.fork()
   if not pid then return nil, errmsg end
   if pid == 0 then
     -- child process here, spawn a new command!
@@ -140,7 +139,7 @@ local function fork_command(cmd, stdin, stdout, stderr)
     if stdin then
       unistd.dup2(stdin, unistd.STDIN_FILENO)
     end
-    local exit_code, reason = posix.spawn(argt)
+    local exit_code, _ = posix.spawn(argt)
     os.exit(exit_code)
   else
     return pid, errmsg
@@ -148,14 +147,14 @@ local function fork_command(cmd, stdin, stdout, stderr)
 end
 
 -- Compares two object metatables
-function eq_mt(obj1, obj2)
+local function eq_mt(obj1, obj2)
   return getmetatable(obj1) == getmetatable(obj2)
 end
 
 -- Join params
-function merge_params(params1, params2)
+local function merge_params(params1, params2)
   local t = copy_table(params1)
-  for k, v in pairs(params2) do
+  for _, v in pairs(params2) do
     t[#t+1] = v
   end
   return t
@@ -171,16 +170,13 @@ end
 -- class table
 local Command = {}
 
-local function wrap_function(fn)
-  return function(params, stdin) return fn(params) end
-end
-
 local function wrap_command(cmd)
   local argt, errmsg = prepare_command(cmd)
   if not argt then
     return nil, errmsg
   end
-  local command_wrapper = function(curernt_patams, params)
+  local command_wrapper = function(current_params)
+    local child_pid
     local stdout_r, stdout_w = posix.pipe()
     local stderr_r, stderr_w = posix.pipe()
     local stdin_r, stdin_w = nil
@@ -189,15 +185,15 @@ local function wrap_command(cmd)
       unistd.write(stdin_w, current_params.stdin)
       close_fds(stdin_w)
     end
-    local child_pid, errmsg = fork_command(cmd, stdin_r, stdout_w, stderr_w)
-    if not child_pid then 
+    child_pid, errmsg = fork_command(cmd, stdin_r, stdout_w, stderr_w)
+    if not child_pid then
       -- Error forking child!
       close_fds(stderr_r, stderr_w, stdout_r, stdout_w, stdin_r, stdin_w)
       return result('', errmsg, 127)
     elseif child_pid ~= 0 then
       -- Child is running!
       close_fds(stdout_w, stderr_w, stdin_r)
-      local _, reason, exit_code = sys_wait.wait(child_pid)
+      local _, _, exit_code = sys_wait.wait(child_pid)
       local output_data = read_data(stdout_r)
       local err_data = read_data(stderr_r)
       close_fds(stdout_r, stderr_r)
@@ -216,10 +212,10 @@ function Command.pipe(self, other)
     return nil, 'Only commands can be piped, second argument is not an Command'
   end
   local command_fn = function (params)
-    local result = self:run()
-    if result.exit_code == 0 then
+    local res = self:run()
+    if res.exit_code == 0 then
       params = params or {}
-      params.stdin = result.stdout
+      params.stdin = res.stdout
       return other:run(params)
     else
       return result.stdout, result.stderr, result.exit_code
@@ -278,7 +274,7 @@ end
 -- string|function: command command or function to execute
 -- treturn: Command
 function Command.new(command, params)
-  local command_fn = nil
+  local command_fn
   if type(command) == 'function' then
     -- If command is a function we can pass optionaly a list of params
     command_fn = command
