@@ -1,1 +1,7 @@
+before_script:
+    - source .travis/prepare_env
+    - luarocks install busted --local
+    - luarocks install luacheck --local
+    - luarocks install luaposix --local
+    - luarocks install luafilesystem --local
 script: ./tools/test.sh

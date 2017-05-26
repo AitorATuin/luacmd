@@ -1,11 +1,9 @@
-#!/bin/sh
+#!/bin/bash
 echo "Running linter"
 luacheck src/lua 
 echo "Running tests"
 pushd src/lua 
-busted ../test
-popd
-
-
-
-
+busted ../test && popd || {
+    popd
+    exit 1
+}
