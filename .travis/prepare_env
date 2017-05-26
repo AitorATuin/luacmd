@@ -34,6 +34,8 @@ function compile_lua() {
     echo "Compiling lua"
     pushd $BUILD_DIR
     pushd lua-5.3.4
+    # Build Lua without backwards compatibility for testing, only bit32 support
+    perl -i -pe 's/-DLUA_COMPAT_(ALL|5_2)/-DLUA_COMPAT_BITLIB/' src/Makefile
     make $(platform)
     make INSTALL_TOP="$LUA_HOME_DIR" install
     popd
