@@ -1,0 +1,61 @@
+#!/bin/bash
+set -ex
+
+function platform() {
+    echo "linux"
+}
+
+function prepare_dirs() {
+    echo "Prearing environment"
+    LUA_HOME_DIR=$TRAVIS_BUILD_DIR/install/lua
+    LUAROCKS_HOME_DIR=$TRAVIS_BUILD_DIR/install/luarocks
+    BUILD_DIR=$TRAVIS_BUILD_DIR/build
+
+    mkdir -p $BUILD_DIR
+    mkdir -p $LUA_HOME_DIR
+    mkdir -p $HOME/.local/bin/
+}
+
+function download_lua() {
+    echo "Downloading lua"
+    pushd $BUILD_DIR
+    curl https://www.lua.org/ftp/lua-5.3.4.tar.gz | tar zx
+    popd
+}
+
+function download_luarocks() {
+    echo "Downloading luarocks"
+    pushd $BUILD_DIR
+    curl https://luarocks.github.io/luarocks/releases/luarocks-2.4.2.tar.gz | tar zx
+    popd
+}
+
+function compile_lua() {
+    echo "Compiling lua"
+    pushd $BUILD_DIR
+    pushd lua-5.3.4
+    make $(platform)
+    make INSTALL_TOP="$LUA_HOME_DIR" install
+    popd
+    popd
+}
+
+function compile_luarocks() {
+    echo "Compiling luarocks"
+    pushd $BUILD_DIR
+    pushd luarocks-2.4.2
+    ./configure --prefix=$LUAROCKS_HOME_DIR --with-lua=$LUA_HOME_DIR
+    make build && make install
+}
+
+function prepare_env() {
+    export PATH=$PATH:$LUA_HOME_DIR/bin:$LUAROCKS_HOME_DIR/bin
+    eval $(luarocks path --bin)
+}
+
+prepare_dirs
+download_lua
+compile_lua
+download_luarocks
+compile_luarocks
+prepare_env
