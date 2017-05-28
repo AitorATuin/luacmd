@@ -5,32 +5,16 @@
 -- author: AitorATuin
 -- license: MIT
 
-local posix = require 'posix'
-local unistd = require 'posix.unistd'
+local Params   = require 'command.params'
+local result   = require 'command.result'
+local util     = require 'command.util'
+local posix    = require 'posix'
+local unistd   = require 'posix.unistd'
 local sys_wait = require 'posix.sys.wait'
 local sys_stat = require 'posix.sys.stat'
-local result = require 'command.result'
-local sprintf = string.format
+local sprintf  = string.format
 
-local function copy_table(orig_t)
-  local new_t = {}
-  for i, v in pairs(orig_t) do
-    if type(v) == 'table' then
-      local t_cp = copy_table(v)
-      local mt = getmetatable(v)
-      if mt then
-        new_t[i] = setmetatable(t_cp, copy_table(mt))
-      else
-        new_t[i] = t_cp
-      end
-    else
-      new_t[i] = v
-    end
-  end
-  return new_t
-end
-
---- resolves path for program `binary` using $PATH
+-- resolves path for program `binary` using $PATH
 -- treturn: ?string|nil path for an executable program `binary`
 local function find_binary_path(binary)
   local function can_be_executed(st_mode)
@@ -146,20 +130,6 @@ local function fork_command(cmd, stdin, stdout, stderr)
   end
 end
 
--- Compares two object metatables
-local function eq_mt(obj1, obj2)
-  return getmetatable(obj1) == getmetatable(obj2)
-end
-
--- Join params
-local function merge_params(params1, params2)
-  local t = copy_table(params1)
-  for _, v in pairs(params2) do
-    t[#t+1] = v
-  end
-  return t
-end
-
 ------------
 -- command
 -- command class wrapping shell commands
@@ -200,7 +170,7 @@ local function wrap_command(cmd)
       return result(output_data, err_data, exit_code)
     end
   end
-  return command_wrapper, {argt}
+  return command_wrapper, Params.new(argt)
 end
 
 function Command.run(self, params)
@@ -208,7 +178,7 @@ function Command.run(self, params)
 end
 
 function Command.pipe(self, other)
-  if not eq_mt(self, other) then
+  if not util.eq_mt(self, other) then
     return nil, 'Only commands can be piped, second argument is not an Command'
   end
   local command_fn = function (params)
@@ -222,7 +192,7 @@ function Command.pipe(self, other)
     end
   end
 
-  local params = merge_params(self._params, other._params)
+  local params = self._params:add(other._params)
   return Command.new(command_fn, params)
 end
 
@@ -289,7 +259,7 @@ function Command.new(command, params)
   end
   local t = {
     _runner = command_fn,
-    _params = params or {{}}
+    _params = params or Params.new({})
   }
   return setmetatable(t, Command)
 end
