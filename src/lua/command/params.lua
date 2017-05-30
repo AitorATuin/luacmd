@@ -57,6 +57,14 @@ Params.resolve = function(_, _)
   return nil
 end
 
+Params.discover = function(_, _)
+  return nil
+end
+
+Params.__call = function(this, arg)
+  return this:discover(arg)
+end
+
 Params.__pow = function(this, values)
   return this:resolve(values)
 end
