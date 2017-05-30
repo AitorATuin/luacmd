@@ -6,6 +6,7 @@
 -- license: MIT
 
 local util = require 'command.util'
+local sprintf = string.format
 
 -- class table
 local Params = {}
@@ -20,8 +21,8 @@ local function get_paramst_mt(paramst)
   end
   -- argt[1] has always the command, ignore it
   local p = {}
-  for i=2, #paramst do
-    for capture in string.gmatch(paramst[i], "${([%w-_]+)}") do
+  for i=1, #paramst do
+    for capture in string.gmatch(paramst[i], "${([%w-_.]+)}") do
       p[capture] = add_index(p, capture, i)
     end
   end
@@ -36,6 +37,9 @@ local function get_paramst_mt(paramst)
 end
 
 Params.new = function(paramst)
+  if type(paramst) ~= 'table' then
+    return nil, sprintf('Unable to create Params from \'%s\'', type(paramst))
+  end
   return setmetatable({
     setmetatable(paramst, get_paramst_mt(paramst))
   }, Params)
@@ -49,7 +53,31 @@ Params.add = function(self, other)
   return setmetatable(t, Params)
 end
 
-Params.__pow = function(this, other)
+Params.resolve = function(_, _)
+  return nil
+end
+
+Params.discover = function(self, field)
+  local discovered = {}
+  for i, params in ipairs(self) do
+    if params[field] then
+      for _, m in ipairs(params[field]) do
+        discovered[#discovered+1] = {i, m}
+      end
+    end
+  end
+  return discovered
+end
+
+Params.__call = function(this, arg)
+  return this:discover(arg)
+end
+
+Params.__pow = function(this, values)
+  return this:resolve(values)
+end
+
+Params.__add = function(this, other)
   if not util.eq_mt(this, other) then
     return nil, 'Only params can be added, second argument is not Params'
   end
