@@ -49,7 +49,15 @@ Params.add = function(self, other)
   return setmetatable(t, Params)
 end
 
-Params.__pow = function(this, other)
+Params.resolve = function(_, _)
+  return nil
+end
+
+Params.__pow = function(this, values)
+  return this:resolve(values)
+end
+
+Params.__add = function(this, other)
   if not util.eq_mt(this, other) then
     return nil, 'Only params can be added, second argument is not Params'
   end
