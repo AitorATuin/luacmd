@@ -6,6 +6,7 @@
 -- license: MIT
 
 local util = require 'command.util'
+local sprintf = string.format
 
 -- class table
 local Params = {}
@@ -36,6 +37,9 @@ local function get_paramst_mt(paramst)
 end
 
 Params.new = function(paramst)
+  if type(paramst) ~= 'table' then
+    return nil, sprintf('Unable to create Params from \'%s\'', type(paramst))
+  end
   return setmetatable({
     setmetatable(paramst, get_paramst_mt(paramst))
   }, Params)

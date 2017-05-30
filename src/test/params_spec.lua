@@ -2,6 +2,7 @@ local Params = require('command.params')
 
 describe('#params specs', function ()
   local args1, args2, args3, p1, p2, p3
+  local match = require 'luassert.match'
   before_each(function()
   args1 = {
     '-v ${file1}',
@@ -23,8 +24,19 @@ describe('#params specs', function ()
   p3 = Params.new(args3)
   end)
   it('can be created', function ()
-    pending('Test not implemented') 
     assert.is_not_nil(p1)
+  end)
+  it('cab only be created from tables', function ()
+    local p4, err4 = Params.new('from a string')
+    local p5, err5 = Params.new(1000)
+    local p6, err6 = Params.new(nil)
+    local p7, err7 = Params.new(true)
+    match.is_all_of(match.is_nil(p4), match.is_nil(p5), match.is_nil(p6), 
+                    match.is_nil(p7))
+    match.is_all_of(match.are.equals(type(err4), 'string'),
+                    match.are.equals(type(err5), 'string'),
+                    match.are.equals(type(err6), 'string'),
+                    match.are.equals(type(err7), 'string'))
   end)
   it('can be added', function ()
     pending('Test not implemented')
