@@ -5,11 +5,13 @@ function error() {
     exit 1
 }
 
+busted_opts="$@"
+
 echo "Running linter"
 luacheck src/lua ||  error "linter failed"
 echo "Running tests"
 pushd src/lua 
-busted ../test && popd || {
+busted ../test "$busted_opts" && popd || {
     popd
     error "tests failed"
 }
