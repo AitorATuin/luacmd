@@ -21,8 +21,8 @@ local function get_paramst_mt(paramst)
   end
   -- argt[1] has always the command, ignore it
   local p = {}
-  for i=2, #paramst do
-    for capture in string.gmatch(paramst[i], "${([%w-_]+)}") do
+  for i=1, #paramst do
+    for capture in string.gmatch(paramst[i], "${([%w-_.]+)}") do
       p[capture] = add_index(p, capture, i)
     end
   end
@@ -57,8 +57,16 @@ Params.resolve = function(_, _)
   return nil
 end
 
-Params.discover = function(_, _)
-  return nil
+Params.discover = function(self, field)
+  local discovered = {}
+  for i, params in ipairs(self) do
+    if params[field] then
+      for _, m in ipairs(params[field]) do
+        discovered[#discovered+1] = {i, m}
+      end
+    end
+  end
+  return discovered
 end
 
 Params.__call = function(this, arg)

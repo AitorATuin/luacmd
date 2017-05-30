@@ -5,8 +5,8 @@ describe('#params specs', function ()
   local match = require 'luassert.match'
   before_each(function()
   args0 = {
-    '-v ${file1}_{file1}_${file2}',
-    '-z ${file2}',
+    '-v ${file1}_${file1}_${file2}',
+    '-z ${file2}_${file2}',
     '-k ${file2}'
   }
   args1 = {
@@ -59,12 +59,11 @@ describe('#params specs', function ()
     assert.are.same(p4, p5)
   end)
   it('can query for variables inside params', function ()
-    pending('Test not implemented')
     assert.are.same(p1('file1'), {{1, 1}}) 
-    assert.are.same(p1('file2'), {{1, 2}}) 
+    assert.are.same(p1('file2'), {{1, 2}})
     assert.are.same(p1('file3'), {}) 
     assert.are.same(p0('file1'), {{1, 1}, {1, 1}})
-    assert.are.same(p0('file2'), {{1, 1,}, {1, 2}, {1, 3}})
+    assert.are.same(p0('file2'), {{1, 1,}, {1, 2}, {1, 2}, {1, 3}})
   end)
   it('can index variables in params', function ()
     pending('Test not implemented')
