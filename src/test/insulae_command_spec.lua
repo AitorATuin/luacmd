@@ -1,4 +1,5 @@
 local cmd = require('command').command
+local bit32 = bit32 or require('bit32')
 local sys_stat = require('posix.sys.stat')
 local sprintf = string.format
 package.path = package.path .. ';' .. '../test/?.lua'

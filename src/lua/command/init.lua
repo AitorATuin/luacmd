@@ -12,6 +12,7 @@ local posix    = require 'posix'
 local unistd   = require 'posix.unistd'
 local sys_wait = require 'posix.sys.wait'
 local sys_stat = require 'posix.sys.stat'
+local bit32    = bit32 or require 'bit32'
 local sprintf  = string.format
 
 -- resolves path for program `binary` using $PATH
